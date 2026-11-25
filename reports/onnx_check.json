@@ -1,0 +1,8 @@
+{
+  "onnx_size_mb": 8.530091285705566,
+  "keras_size_mb": 9.207331657409668,
+  "max_abs_diff": 1.0579824447631836e-05,
+  "label_agreement": 1.0,
+  "onnx_test_accuracy": 0.9833578071463533,
+  "onnx_ms_per_image_median": 6.532300001708791
+}

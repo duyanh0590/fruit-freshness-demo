@@ -1,0 +1,7 @@
+# Chỉ các gói cần để chạy demo (không cần TensorFlow: mô hình đã xuất sang ONNX)
+numpy
+pandas
+pillow
+opencv-python-headless
+onnxruntime
+gradio>=5.0

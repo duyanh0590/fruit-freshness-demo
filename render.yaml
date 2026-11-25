@@ -1,0 +1,12 @@
+# Render Blueprint: New > Blueprint, chọn kho GitHub chứa thư mục này.
+services:
+  - type: web
+    name: fruit-freshness-demo
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: python src/app.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
