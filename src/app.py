@@ -25,7 +25,12 @@ import pandas as pd
 from config import CLASS_VI, FIG_DIR, IMG_SIZE, MODEL_DIR, PRED_DIR, REPORT_DIR, ROOT, ROTTEN, SEED, SPLIT_DIR
 from imageio_utils import abs_path, read_rgb, resize
 
-session = ort.InferenceSession(str(MODEL_DIR / "mobilenetv2.onnx"), providers=["CPUExecutionProvider"])
+ON_CLOUD = "PORT" in os.environ   # Render cấp cổng qua biến PORT
+# Gói Free của Render chỉ có 0,1 CPU: dùng 1 luồng để ONNX Runtime không tạo nhiều luồng tranh nhau CPU
+_opts = ort.SessionOptions()
+if ON_CLOUD:
+    _opts.intra_op_num_threads = _opts.inter_op_num_threads = 1
+session = ort.InferenceSession(str(MODEL_DIR / "mobilenetv2.onnx"), _opts, providers=["CPUExecutionProvider"])
 INPUT_NAME = session.get_inputs()[0].name
 FRUITS = ["Táo", "Chuối", "Cam"]            # lớp k và k + 3 cùng một loại quả
 UNSURE_CONF = 0.90                          # dưới ngưỡng này thì khuyên kiểm tra thủ công
@@ -217,7 +222,9 @@ with gr.Blocks(title="Phân loại độ tươi trái cây") as demo:
                 image = gr.Image(type="numpy", sources=["upload", "webcam", "clipboard"], label="Ảnh trái cây", height=340)
                 threshold = gr.Slider(0.05, 0.95, value=0.5, step=0.05, label="Ngưỡng xác suất quả hỏng để loại bỏ",
                                       info="Hạ ngưỡng → loại khắt khe hơn (ít bỏ sót quả hỏng, nhưng loại nhầm nhiều quả tươi hơn)")
-                show_map = gr.Checkbox(value=True, label="Hiển thị vùng ảnh ảnh hưởng đến dự đoán (occlusion, thêm ~1 s)")
+                # occlusion chạy mô hình thêm 81 lần: trên máy ~1 s, trên gói Free của Render mất hàng chục giây nên mặc định tắt
+                show_map = gr.Checkbox(value=not ON_CLOUD, label="Hiển thị vùng ảnh ảnh hưởng đến dự đoán (occlusion, "
+                                       + ("chậm trên máy chủ miễn phí, có thể mất 1–2 phút)" if ON_CLOUD else "thêm ~1 s)"))
                 button = gr.Button("Phân loại", variant="primary")
                 gr.Examples(example_images(), inputs=image, label="Ảnh mẫu từ tập kiểm thử")
             with gr.Column():
@@ -255,6 +262,5 @@ with gr.Blocks(title="Phân loại độ tươi trái cây") as demo:
 if __name__ == "__main__":
     # Trên Render (có biến PORT) phải nghe ở 0.0.0.0, đúng cổng được cấp và không mở trình duyệt;
     # --no-browser: chạy trên máy nhưng không tự mở trình duyệt
-    on_cloud = "PORT" in os.environ
-    demo.launch(server_name="0.0.0.0" if on_cloud else "127.0.0.1", server_port=int(os.environ.get("PORT", 7860)),
-                inbrowser=not on_cloud and "--no-browser" not in sys.argv)
+    demo.launch(server_name="0.0.0.0" if ON_CLOUD else "127.0.0.1", server_port=int(os.environ.get("PORT", 7860)),
+                inbrowser=not ON_CLOUD and "--no-browser" not in sys.argv)
